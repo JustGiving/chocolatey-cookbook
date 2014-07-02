@@ -2,8 +2,8 @@ cookbooks
 nuget.exe
 spec
 Cheffile
-build.cmd
-build.ps1
+#build.cmd
+#build.ps1
 
 .vagrant
 Berksfile.lock
@@ -20,3 +20,11 @@ Gemfile.lock
 bin/*
 .bundle/*
 
+.kitchen/
+.kitchen.local.yml
+pkgs/*
+/cookbooks/
+/tmp/
+/temp/
+/packages/
+pkgs
