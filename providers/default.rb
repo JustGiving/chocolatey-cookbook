@@ -71,11 +71,6 @@ def cmd_args
   output = ''
   output += " -source #{@current_resource.source}" if @current_resource.source
   output += " -ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
-  output
-end
-
-def cmd_params
-  output = ''
   output += " -params '#{@current_resource.params}'" unless @current_resource.params.to_s.empty?
   output
 end
@@ -134,7 +129,7 @@ end
 
 def install(name)
   execute "install package #{name}" do
-    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} #{cmd_args} #{cmd_params}"
+    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} #{cmd_args}"
   end
 end
 
@@ -146,6 +141,6 @@ end
 
 def install_version(name, version)
   execute "install package #{name} to version #{version}" do
-    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} -version #{version} #{cmd_args} #{cmd_params}"
+    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} -version #{version} #{cmd_args}"
   end
 end
