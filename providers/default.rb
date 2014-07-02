@@ -30,6 +30,7 @@ def load_current_resource
   @current_resource.version(@new_resource.version)
   @current_resource.source(@new_resource.source)
   @current_resource.args(@new_resource.args)
+  @current_resource.params(@new_resource.params)
   @current_resource.package(@new_resource.package)
   @current_resource.exists = true if package_exists?(@current_resource.package, @current_resource.version)
   @current_resource.upgradeable = true if upgradeable?(@current_resource.package)
@@ -70,6 +71,12 @@ def cmd_args
   output = ''
   output += " -source #{@current_resource.source}" if @current_resource.source
   output += " -ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
+  output
+end
+
+def cmd_params
+  output = ''
+  output += " -params '#{@current_resource.params}'" unless @current_resource.params.to_s.empty?
   output
 end
 
@@ -127,7 +134,7 @@ end
 
 def install(name)
   execute "install package #{name}" do
-    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} #{cmd_args}"
+    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} #{cmd_args} #{cmd_params}"
   end
 end
 
@@ -139,6 +146,6 @@ end
 
 def install_version(name, version)
   execute "install package #{name} to version #{version}" do
-    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} -version #{version} #{cmd_args}"
+    command "#{::File.join(node['chocolatey']['bin_path'], "chocolatey.bat")} install #{name} -version #{version} #{cmd_args} #{cmd_params}"
   end
 end
