@@ -1,0 +1,41 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.require_version ">= 1.5.0"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.box_url = "http://boxes.localhost.com/windows_2012_virtualbox.box"
+  #config.vm.box_url = "http://localhost/boxes/w12_updated.box"
+  config.vm.box = "chocolatey-cookbook"
+  config.winrm.username = "vagrant"
+  config.winrm.password = "vagrant"  
+  config.vm.guest = :windows  
+  config.windows.halt_timeout = 15
+  #config.omnibus.chef_version = :latest
+    
+    # Port forward WinRM and RDP
+  config.vm.network :forwarded_port, guest: 3389, host: 13389
+  config.vm.network :forwarded_port, guest: 5985, host: 15985
+	config.vm.network :forwarded_port, guest: 9090, host: 9090
+
+config.vm.network "public_network", :bridged => 'Realtek PCIe GBE Family Controller'
+	#config.vm.network :private_network, ip: "33.33.33.10"
+
+  config.berkshelf.enabled = true
+
+   config.vm.provider :virtualbox do |vb|
+     # Don't boot with headless mode
+     vb.gui = true
+     # Use VBoxManage to customize the VM. For example to change memory:
+     vb.customize ["modifyvm", :id, "--memory", "2048"]
+   end
+
+  config.vm.provision :chef_solo do |chef|
+    chef.log_level         = :debug
+    chef.run_list = ["recipe[chef_handler]","recipe[windows::reboot_handler]","recipe[build.agent::default]"]
+  end
+end
