@@ -14,5 +14,5 @@ if node['platform_family'] == 'windows'
 	default['chocolatey']['bin_exe'] = 'chocolatey.bat'
   end
   default['chocolatey']['bin_exe_path']=::File.join(node['chocolatey']['bin_path'], node['chocolatey']['bin_exe'])
-  default['chocolatey']['upgrade']  = true
+  default['chocolatey']['upgrade']  = false
 end
