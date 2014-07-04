@@ -125,6 +125,7 @@ end
 
 def local_info(name)
   cmd_statement="#{node['chocolatey']['bin_exe_path']} version #{name} -localonly #{cmd_args}"
+  Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
   return cmd.stdout
@@ -132,6 +133,7 @@ end
 
 def version_info(name)
   cmd_statement="#{node['chocolatey']['bin_exe_path']} version #{name} #{cmd_args}"
+  Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
   return cmd.stdout
@@ -171,18 +173,24 @@ end
 
 def install(name)
   execute "install package #{name}" do
-    command "#{node['chocolatey']['bin_exe_path']} install #{name} #{cmd_args}"
+    command_statement = "#{node['chocolatey']['bin_exe_path']} install #{name} #{cmd_args}"
+    Chef::Log.debug command_statement
+    command command_statement
   end
 end
 
 def upgrade(name)
   execute "updating #{name} to latest" do
-    command "#{node['chocolatey']['bin_exe_path']} update #{name} #{cmd_args}"
+    command_statement = "#{node['chocolatey']['bin_exe_path']} update #{name} #{cmd_args}"
+    Chef::Log.debug command_statement
+    command command_statement
   end
 end
 
 def install_version(name, version)
   execute "install package #{name} to version #{version}" do
-    command "#{node['chocolatey']['bin_exe_path']} install #{name} -version #{version} #{cmd_args}"
+    command_statement "#{node['chocolatey']['bin_exe_path']} install #{name} -version #{version} #{cmd_args}"
+    Chef::Log.debug command_statement
+    command command_statement
   end
 end
