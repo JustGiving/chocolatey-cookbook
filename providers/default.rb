@@ -73,12 +73,27 @@ action :remove do
   if @current_resource.exists
     converge_by("uninstall package #{ @current_resource.package }") do
       execute "uninstall package #{@current_resource.package}" do
-        command "#{node['chocolatey']['bin_exe_path']} uninstall  #{@new_resource.package} #{cmd_args}"
+        command "#{chocolatey_exe} uninstall  #{@new_resource.package} #{cmd_args}"
       end
     end
   else
     Chef::Log.info "#{ @new_resource } not installed - nothing to do."
   end
+end
+
+def chocolatey_exe
+  if (::File.exist?(::File.join(node['chocolatey']['bin_path'], 'chocolatey.exe')))
+    choco_exe = 'chocolatey.exe'
+  elsif (::File.exist?(::File.join(node['chocolatey']['bin_path'], 'choco.exe')))
+    choco_exe = 'choco.exe'
+  elsif (::File.exist?(::File.join(node['chocolatey']['bin_path'], 'chocolatey.bat')))
+    choco_exe = 'chocolatey.bat'
+  elsif (::File.exist?(::File.join(node['chocolatey']['bin_path'], 'choco.bat')))
+    choco_exe = 'choco.bat'
+  else
+    fail "Couldn't locate a chocolatey executable"
+  end
+  return ::File.join(node['chocolatey']['bin_path'], choco_exe)
 end
 
 def cmd_args
@@ -101,6 +116,17 @@ def extract_version_number(version_output)
   return nil
 end
 
+def extract_latest_version_number(version_output)
+  version_regex='\d+(.\d+)?(.\d+)?(.\d+)?'
+  version_output.split("\r\n").reduce({}) do |h, s|
+    if String(s).start_with?("latest ")
+      if s.match(version_regex)
+        return String(s.match(version_regex))
+      end
+    end
+  end
+  return nil
+end
 
 def version_greater_than_or_equal(input1,input2)
   input1_parts=input1.split('.').reverse
@@ -124,16 +150,16 @@ def version_greater_than_or_equal(input1,input2)
 end
 
 def local_info(name)
-  cmd_statement="#{node['chocolatey']['bin_exe_path']} version #{name} -localonly #{cmd_args}"
-  Chef::Log.debug cmd_statement
+  cmd_statement="#{chocolatey_exe} version #{name} -localonly #{cmd_args}"
+  #Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
   return cmd.stdout
 end
 
 def version_info(name)
-  cmd_statement="#{node['chocolatey']['bin_exe_path']} version #{name} #{cmd_args}"
-  Chef::Log.debug cmd_statement
+  cmd_statement="#{chocolatey_exe} version #{name} #{cmd_args}"
+  #Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
   return cmd.stdout
@@ -160,11 +186,7 @@ def upgradeable?(name)
     return false
   elsif package_installed?(name)
     Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
-    if @current_resource.version_info.include?('Latest version installed')
-      return false
-    else
-      return true
-    end
+    return @current_resource.version_info.include?('This version of chocolatey will be upgraded')
   else
     Chef::Log.debug("Package isn't installed... we can upgrade it!")
     return true
@@ -173,23 +195,52 @@ end
 
 def install(name)
   execute "install package #{name}" do
-    command_statement = "#{node['chocolatey']['bin_exe_path']} install #{name} #{cmd_args}"
+    command_statement = "#{chocolatey_exe} install #{name} #{cmd_args}"
     Chef::Log.debug command_statement
     command command_statement
   end
 end
 
 def upgrade(name)
-  execute "updating #{name} to latest" do
-    command_statement = "#{node['chocolatey']['bin_exe_path']} update #{name} #{cmd_args}"
-    Chef::Log.debug command_statement
-    command command_statement
+  v_info=version_info(name)
+  if v_info.include?('A more recent version is available')
+    existing_version="#{extract_version_number(v_info)}"
+    new_version="#{extract_latest_version_number(v_info)}"
+    backup_folder_name="backup-Chocolatey-#{existing_version}"
+    backup_folder_path="#{::File.join(ENV['SYSTEMDRIVE'], backup_folder_name)}"
+    Chef::Log.debug "This version of #{name} will be upgraded #{existing_version} -> #{new_version}. Will backup current version to #{backup_folder_path}"
+
+    if ::File.exists?(backup_folder_path)
+      ::File.delete backup_folder_path
+    end
+
+    ::File.rename node['chocolatey']['path'], backup_folder_path
+
+    cmd = Mixlib::ShellOut.new("@powershell -NoProfile -ExecutionPolicy unrestricted -Command \"iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))\" && SET PATH=%PATH%;%systemdrive%\\chocolatey\\bin")
+    cmd.run_command
+
+    if ::File.exists?(::File.join(backup_folder_path,"lib"))
+      if !::File.exists?(::File.join(node['chocolatey']['path'],"lib"))
+        Dir.mkdir ::File.join(node['chocolatey']['path'],"lib")
+      end
+      ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib"), ::File.join(node['chocolatey']['path'],"lib")
+    end
+
+    if ::File.exists?(::File.join(backup_folder_path,"lib-bad"))
+      if !::File.exists?(::File.join(node['chocolatey']['path'],"lib-bad"))
+        Dir.mkdir ::File.join(node['chocolatey']['path'],"lib-bad")
+      end
+      ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib-bad"), ::File.join(node['chocolatey']['path'],"lib-bad")
+    end
+
+    new_version=extract_version_number(version_info(name))
+    Chef::Log.debug "updated version: #{new_version}"
   end
 end
 
 def install_version(name, version)
   execute "install package #{name} to version #{version}" do
-    command_statement "#{node['chocolatey']['bin_exe_path']} install #{name} -version #{version} #{cmd_args}"
+    command_statement "#{chocolatey_exe} install #{name} -version #{version} #{cmd_args}"
     Chef::Log.debug command_statement
     command command_statement
   end
