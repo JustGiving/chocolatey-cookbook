@@ -143,7 +143,7 @@ end
 
 def package_installed?(name)
   install_info = local_info(name)
-  return !install_info.include?("Package not found")
+  return (!install_info.include?("Package not found") and !install_info.include?("Command 'version' failed"))
 end
 
 def exists?(name, version)
