@@ -170,7 +170,9 @@ def installed_version(name)
 end
 
 def package_installed?(name)
+  Chef::Log.debug("Package '#{name} installed?")
   if (name == "chocolatey")
+    Chef::Log.debug("c:/chocolatey exists? #{::File.exist?("c:/chocolatey")}")
     return ::File.exist?("c:/chocolatey")
   end
   Chef::Log.debug("Looking for #{node['chocolatey']['path']}/lib/#{name}*")
@@ -196,11 +198,8 @@ end
 
 def upgradeable?(name)
   if @current_resource.exists
-    return false
-  elsif package_installed?(name)
     Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
     v_info = version_info(@current_resource.package)
-    version_number=extract_version_number(v_info)
     return true if v_info.include?("A more recent version is available")
   else
     Chef::Log.debug("Package isn't installed... we can upgrade it!")
