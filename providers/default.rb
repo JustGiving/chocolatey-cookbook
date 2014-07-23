@@ -208,9 +208,9 @@ def upgradeable?(name)
 end
 
 def install(name)
+  command_statement = "#{chocolatey_exe} install #{name} #{cmd_args}"
+  Chef::Log.debug command_statement
   execute "install package #{name}" do
-    command_statement = "#{chocolatey_exe} install #{name} #{cmd_args}"
-    Chef::Log.debug command_statement
     command command_statement
     not_if {package_installed?(name)}
   end
@@ -254,9 +254,10 @@ def upgrade(name)
 end
 
 def install_version(name, version)
+  command_statement = "#{chocolatey_exe} install #{name} -version #{version} #{cmd_args}"
+  Chef::Log.debug command_statement
   execute "install package #{name} to version #{version}" do
-    command_statement "#{chocolatey_exe} install #{name} -version #{version} #{cmd_args}"
-    Chef::Log.debug command_statement
     command command_statement
+    not_if {(installed_version(name) == version)}
   end
 end
