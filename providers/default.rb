@@ -30,8 +30,10 @@ def load_current_resource
   @current_resource.version(@new_resource.version)
   @current_resource.source(@new_resource.source)
   @current_resource.args(@new_resource.args)
-  @current_resource.params(@new_resource.params)
+  @current_resource.choco_params(@new_resource.choco_params)
   @current_resource.package(@new_resource.package)
+  @current_resource.force(@new_resource.force)
+  @current_resource.x86(@new_resource.x86)
   @current_resource.upgradeable=false
 
   #installed=package_installed?(@current_resource.package)
@@ -52,7 +54,7 @@ def load_current_resource
 end
 
 action :install do
-  if @current_resource.exists
+  if @current_resource.exists and !@current_resource.force
     Chef::Log.info "#{ @current_resource.package } already installed - nothing to do."
   elsif @current_resource.version
     install_version(@current_resource.package, @current_resource.version)
@@ -100,7 +102,11 @@ def cmd_args
   output = ''
   output += " -source #{@current_resource.source}" if @current_resource.source
   output += " -ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
-  output += " -params '#{@current_resource.params}'" unless @current_resource.params.to_s.empty?
+  output += " -params '#{@current_resource.choco_params}'" unless @current_resource.choco_params.to_s.empty?
+  output += " -force" if @current_resource.force
+  output += " -x86" if @current_resource.x86
+  output += " '#{@current_resource.other_args}'" unless @current_resource.other_args.to_s.empty?
+  Chef::Log.debug "Running chocolatey with args: #{output}"
   output
 end
 
@@ -150,7 +156,7 @@ def version_greater_than_or_equal(input1,input2)
 end
 
 def local_info(name)
-  cmd_statement="#{chocolatey_exe} version #{name} -localonly #{cmd_args}"
+  cmd_statement="#{chocolatey_exe} version #{name} -localonly"
   #Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
@@ -158,7 +164,7 @@ def local_info(name)
 end
 
 def version_info(name)
-  cmd_statement="#{chocolatey_exe} version #{name} #{cmd_args}"
+  cmd_statement="#{chocolatey_exe} version #{name}"
   #Chef::Log.debug cmd_statement
   cmd = Mixlib::ShellOut.new(cmd_statement)
   cmd.run_command
@@ -170,7 +176,7 @@ def installed_version(name)
 end
 
 def package_installed?(name)
-  Chef::Log.debug("Package '#{name} installed?")
+  Chef::Log.debug("Package '#{name}' installed?")
   if (name == "chocolatey")
     Chef::Log.debug("c:/chocolatey exists? #{::File.exist?("c:/chocolatey")}")
     return ::File.exist?("c:/chocolatey")
@@ -208,6 +214,14 @@ def upgradeable?(name)
 end
 
 def install(name)
+  if name == "chocolatey"
+    powershell 'install chocolatey' do
+      code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
+      not_if { ::File.exist?(chocolatey_exe)}
+    end
+    return
+  end
+
   command_statement = "#{chocolatey_exe} install #{name} #{cmd_args}"
   Chef::Log.debug command_statement
   execute "install package #{name}" do
@@ -217,13 +231,30 @@ def install(name)
 end
 
 def upgrade(name)
-  v_info=version_info(name)
+  if name == "chocolatey"
+    upgrade_chocolatey()
+  else
+    v_info = version_info(name)
+    current_version = extract_version_number(v_info)
+    latest_version = extract_latest_version_number(v_info)
+    command_statement = "#{chocolatey_exe} update #{name} #{cmd_args}"
+    Chef::Log.debug command_statement
+    execute "update package #{name} to version #{version}" do
+      command command_statement
+      not_if {(installed_version(name) == version)}
+    end
+
+  end
+end
+
+def upgrade_chocolatey()
+  v_info=version_info("chocolatey")
   if v_info.include?('A more recent version is available')
     existing_version="#{extract_version_number(v_info)}"
     new_version="#{extract_latest_version_number(v_info)}"
     backup_folder_name="backup-Chocolatey-#{existing_version}"
     backup_folder_path="#{::File.join(ENV['SYSTEMDRIVE'], backup_folder_name)}"
-    Chef::Log.debug "This version of #{name} will be upgraded #{existing_version} -> #{new_version}. Will backup current version to #{backup_folder_path}"
+    Chef::Log.debug "This version of chocolatey will be upgraded #{existing_version} -> #{new_version}. Will backup current version to #{backup_folder_path}"
 
     if ::File.exists?(backup_folder_path)
       ::File.delete backup_folder_path
@@ -238,18 +269,24 @@ def upgrade(name)
       if !::File.exists?(::File.join(node['chocolatey']['path'],"lib"))
         Dir.mkdir ::File.join(node['chocolatey']['path'],"lib")
       end
-      ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib"), ::File.join(node['chocolatey']['path'],"lib")
+      if (::File.exists?(::File.join(backup_folder_path,"lib")))
+        ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib"), ::File.join(node['chocolatey']['path'],"lib")
+      end
     end
 
     if ::File.exists?(::File.join(backup_folder_path,"lib-bad"))
       if !::File.exists?(::File.join(node['chocolatey']['path'],"lib-bad"))
         Dir.mkdir ::File.join(node['chocolatey']['path'],"lib-bad")
       end
-      ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib-bad"), ::File.join(node['chocolatey']['path'],"lib-bad")
+      if ::File.exists?(::File.join(backup_folder_path,"lib-bad"))
+        ::FileUtils.copy_entry ::File.join(backup_folder_path,"lib-bad"), ::File.join(node['chocolatey']['path'],"lib-bad")
+      end
     end
 
-    new_version=extract_version_number(version_info(name))
-    Chef::Log.debug "updated version: #{new_version}"
+    new_version=extract_version_number(version_info("chocolatey"))
+    Chef::Log.info "updated chocolatey to #{new_version}"
+    node.set['chocolatey']['exe_path'] = chocolatey_exe
+    Chef::Log.debug "new chocolatey exe path is #{node['chocolatey']['exe_path']}"
   end
 end
 

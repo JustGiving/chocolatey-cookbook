@@ -22,10 +22,7 @@ return 'platform not supported' if node['platform_family'] != 'windows'
 
 include_recipe 'powershell'
 
-powershell 'install chocolatey' do
-  code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
-  not_if { ::File.exist?(::File.join(node['chocolatey']['bin_path'], 'chocolatey.bat')) }
-end
+chocolatey "chocolatey"
 
 file 'cygwin log' do
   path 'C:/cygwin/var/log/setup.log'
