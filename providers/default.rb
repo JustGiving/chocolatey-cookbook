@@ -262,7 +262,7 @@ def upgrade_chocolatey()
 
     ::File.rename node['chocolatey']['path'], backup_folder_path
 
-    cmd = Mixlib::ShellOut.new("@powershell -NoProfile -ExecutionPolicy unrestricted -Command \"iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))\" && SET PATH=%PATH%;%systemdrive%\\chocolatey\\bin")
+    cmd = Mixlib::ShellOut.new("@powershell -NoProfile -ExecutionPolicy unrestricted -Command 'iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))' && SET PATH=%PATH%;%systemdrive%\\chocolatey\\bin")
     cmd.run_command
 
     if ::File.exists?(::File.join(backup_folder_path,"lib"))
