@@ -226,7 +226,6 @@ def install(name)
   Chef::Log.debug command_statement
   execute "install package #{name}" do
     command command_statement
-    not_if {package_installed?(name)}
   end
 end
 
