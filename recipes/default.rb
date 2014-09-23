@@ -19,16 +19,32 @@
 #
 
 return 'platform not supported' if node['platform_family'] != 'windows'
+include_recipe 'windows'
 
-include_recipe 'powershell'
+# ::Chef::Recipe.send(:include, Chef::Mixin::PowershellOut)
+::Chef::Resource::RubyBlock.send(:include, Chef::Mixin::PowershellOut)
 
-chocolatey "chocolatey"
+powershell_script 'install chocolatey' do
+  code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
+  convert_boolean_return true
+  not_if { ChocolateyHelpers.chocolatey_installed? }
+end
 
+ruby_block "reset ENV['ChocolateyInstall']" do
+  block do
+    cmd = powershell_out!("[System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'MACHINE')")
+    ENV['ChocolateyInstall'] = cmd.stdout.chomp
+    Chef::Log.info("ChocolateyInstall is '#{ENV['ChocolateyInstall']}'")
+  end
+end
+
+# Issue #1: Cygwin "setup.log" size
 file 'cygwin log' do
   path 'C:/cygwin/var/log/setup.log'
   action :delete
 end
 
 chocolatey 'chocolatey' do
-  action :upgrade if node['chocolatey']['upgrade']
+  action :upgrade
+  only_if { node['chocolatey']['upgrade'] }
 end

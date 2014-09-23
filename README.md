@@ -1,52 +1,79 @@
-Description
-===========
+[![Cookbook Version](https://img.shields.io/cookbook/v/chocolatey.svg)](https://supermarket.getchef.com/cookbooks/chocolatey) [![Build Status](http://img.shields.io/travis/chocolatey/chocolatey-cookbook/master.svg)](https://travis-ci.org/chocolatey/chocolatey-cookbook)
 
-Install Chocolatey with the default recipe and manage package with LWRP
+# Description
 
-Requirements
-============
+Install Chocolatey with the default recipe and manage packages with a handy resource/provider.
 
-Work on Windows
+# Requirements
 
-Resource/Provider
-=================
+## Platform:
 
-This cookbook includes LWRPs for managing:
-* chocolatey
+* Windows
+* Chef 11.6 or greater
 
-htpasswd
---------
+## Cookbooks:
 
-# Actions
+* windows (~> 1.31)
 
-- :install: Install a chocolatey package (default)
-- :upgrade: Update a chocolatey package
-- :remove: Uninstall a chocolatey package
+# Notes
 
-# Attribute Parameters
+As of Chocolatey version
+[0.9.8.24](https://github.com/chocolatey/chocolatey/blob/master/CHANGELOG.md#09824-july-3-2014)
+the install directory for Chocolatey has changed from `C:\Chocolatey` to
+`C:\ProgramData\Chocolatey`.
 
-- package_name: string or package to manage
-- package: package to manage (default package_name)
-- version
-- source
-- args: arguments to the installation
+More information can be gotten from the [Chocolateywiki](https://github.com/chocolatey/chocolatey/wiki/DefaultChocolateyInstallReasoning).
 
+# Attributes
 
-# Example
+* `node['chocolatey']['Uri']` -  Defaults to `"https://chocolatey.org/install.ps1"`.
+* `node['chocolatey']['upgrade']` -  Defaults to `"true"`.
 
-    include_recipe "chocolatey"
-    
-    %w{ sysinternals 7zip notepadplusplus GoogleChrome Console2}.each do |pack|
-      chocolatey pack
-    end
-    
-    %w{ bash openssh grep}.each do |pack|
-      chocolatey pack do
-        source "cygwin"
-      end
-    end
+# Recipes
 
+* chocolatey::default
 
-    chocolatey "DotNet4.5"
+# Resources
 
-    chocolatey "PowerShell"
+* [chocolatey](#chocolatey)
+
+## chocolatey
+
+### Actions
+
+- install: Install a chocolatey package (default)
+- remove: Uninstall a chocolatey package
+- upgrade: Update a chocolatey package
+
+### Attribute Parameters
+
+- package: package to manage (default name)
+- source:
+- version: The version of the package to use.
+- args: arguments to the installation.
+
+# Examples
+
+``` ruby
+include_recipe 'chocolatey'
+
+%w{sysinternals 7zip notepadplusplus GoogleChrome Console2}.each do |pack|
+  chocolatey pack
+end
+
+%w{bash openssh grep}.each do |pack|
+  chocolatey pack do
+    source 'cygwin'
+  end
+end
+
+chocolatey 'DotNet4.5'
+
+chocolatey 'PowerShell'
+```
+
+# License and Maintainer
+
+Maintainer:: Guilhem Lettron (<guilhem.lettron@youscribe.com>)
+
+License:: Apache 2.0
