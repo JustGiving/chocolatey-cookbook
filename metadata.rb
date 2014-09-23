@@ -8,4 +8,4 @@ version          '11.0.0'
 
 supports 'windows'
 
-depends 'windows', '~> 1.31'
+#depends 'windows', '~> 1.31'
