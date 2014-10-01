@@ -8,7 +8,7 @@ if ((Test-Path ".\nuget.exe") -eq $false)
 }
 
 .\nuget.exe install psake  -ExcludeVersion -OutputDirectory "pkgs"
-.\nuget.exe install  cookbookbuilder -Source "http://nuget.prod.justgiving.service:1337/nuget/packages" -ExcludeVersion -OutputDirectory "pkgs" -Version 1.0.0.18
+.\nuget.exe install  cookbookbuilder -Source "http://nuget.prod.justgiving.service:1337/nuget/packages" -ExcludeVersion -OutputDirectory "pkgs" -Version 1.0.0.39
 
 Import-Module '.\pkgs\psake\tools\psake.psm1';
 if($task -eq $null)
