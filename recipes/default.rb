@@ -21,7 +21,7 @@
 return 'platform not supported' if node['platform_family'] != 'windows'
 include_recipe 'windows'
 
-# ::Chef::Recipe.send(:include, Chef::Mixin::PowershellOut)
+#::Chef::Recipe.send(:include, Chef::Mixin::PowershellOut)
 ::Chef::Resource::RubyBlock.send(:include, Chef::Mixin::PowershellOut)
 
 powershell_script 'install chocolatey' do

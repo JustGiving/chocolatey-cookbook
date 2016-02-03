@@ -24,8 +24,9 @@ def whyrun_supported?
   true
 end
 
-def load_current_resource
+def load_current_resource  
   @current_resource = Chef::Resource::Chocolatey.new(@new_resource.name)
+  @chocolatey_start = Time.now  
   @current_resource.name(@new_resource.name)
   @current_resource.version(@new_resource.version)
   @current_resource.source(@new_resource.source)
@@ -33,7 +34,7 @@ def load_current_resource
   @current_resource.options(@new_resource.options)
   @current_resource.package(@new_resource.package)
   @current_resource.exists = true if package_exists?(@current_resource.package, @current_resource.version)
-  @current_resource.upgradeable = true if upgradeable?(@current_resource.package)
+  #@current_resource.upgradeable = true if upgradeable?(@current_resource.package)
   #  @current_resource.installed = true if package_installed?(@current_resource.package)
 end
 
@@ -45,14 +46,16 @@ action :install do
   else
     install(@current_resource.package)
   end
+  Chef::Log.info "Chocolatey install execution time: #{time_diff()} s"
 end
 
 action :upgrade do
-  if @current_resource.upgradeable
+  if upgradeable?(@current_resource.package)
     upgrade(@current_resource.package)
   else
-    Chef::Log.info("Package #{@current_resource} already to latest version")
+    Chef::Log.info("Package #{@current_resource} already to latest version")    
   end
+   Chef::Log.info "Chocolatey upgrade execution time: #{time_diff()} s"
 end
 
 action :remove do
@@ -65,6 +68,7 @@ action :remove do
   else
     Chef::Log.info "#{ @new_resource } not installed - nothing to do."
   end
+   Chef::Log.info "Chocolatey remove execution time: #{time_diff()} s"
 end
 
 def cmd_args
@@ -78,14 +82,39 @@ def cmd_args
   output
 end
 
+def package_with_name_in_lib_folder?(name,version)
+  found = false
+  find = name 
+  if(version)
+    find = "#{name}.#{version}"
+  end 
+  directory = ChocolateyHelpers.chocolatey_lib_folder
+  x = ::Dir.entries(directory).select { |file| ::File.directory? ::File.join(directory, file)}
+  x.each do |d|
+    if(d.include?(find))
+      found = true
+      break
+    end
+  end
+  Chef::Log.debug "package_with_name_in_lib_folder found: #{found}"
+  return found
+end
+
+def time_diff()
+   (Time.now - @chocolatey_start) 
+end
+
 def package_installed?(name)
   cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} version #{name} -localonly #{cmd_args}")
   cmd.run_command
-
   cmd.exitstatus == 0
 end
 
 def package_exists?(name, version)
+  if package_with_name_in_lib_folder?(name,version) 
+    return true 
+  end
+  Chef::Log.debug "not found in lib folder, moving on"
   return false unless package_installed?(name)
   return true unless version
 
@@ -106,7 +135,6 @@ def upgradeable?(name)
     Chef::Log.debug("Package isn't installed... we can upgrade it!")
     return true
   end
-
   Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
   cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} version #{name} #{cmd_args}")
   cmd.run_command
@@ -122,7 +150,7 @@ end
 def upgrade(name)
   execute "updating #{name} to latest" do
     command "#{::ChocolateyHelpers.chocolatey_executable} update #{name} #{cmd_args}"
-  end
+  end  
 end
 
 def install_version(name, version)
@@ -130,3 +158,4 @@ def install_version(name, version)
     command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -version #{version} #{cmd_args}"
   end
 end
+

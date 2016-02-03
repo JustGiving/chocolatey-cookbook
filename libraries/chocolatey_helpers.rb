@@ -12,6 +12,10 @@ module ChocolateyHelpers
     "\"#{::File.join(chocolatey_install, 'bin', 'choco')}\""
   end
 
+  def self.chocolatey_lib_folder
+    "#{chocolatey_install}\\lib"
+  end
+
   # Check if Chocolatey is installed
   def self.chocolatey_installed?
     return @is_chocolatey_installed if @is_chocolatey_installed
