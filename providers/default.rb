@@ -253,6 +253,7 @@ end
 
 def jg_cmd_args
   output = ''
+  output += " --allow-empty-checksums " # not ideal but should move this upto resource level
   output += " --source #{@current_resource.source}" if @current_resource.source
   output += " --ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
   @current_resource.options.each do |k, v|
