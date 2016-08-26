@@ -89,7 +89,7 @@ module ChocolateyVersions
 		   		end
 		   	else
 		   		version_data = `#{exe} version`
-		 		version = parse_version_data(version_data).gsub('v','')
+		 		version = parse_version_data(version_data.downcase).gsub('v','')
 				log("Detected version is [#{version}]")
 				save_cached_version(md5sum,version)
 				return version

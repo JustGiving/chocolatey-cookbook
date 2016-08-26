@@ -223,7 +223,7 @@ def log(msg)
 end
 
 def jg_package_exists?(name, version)
-  return jg_package_installed?(name,version)
+  return jg_package_installed?(name.downcase,version)
 end
 
 def jg_package_installed?(name,version)

@@ -31,6 +31,8 @@ if (node['chocolatey']['jg_code_on'] == true)
   ChocolateyPackages.debug(node['chocolatey']['debug'])
   Chef::Log.info("chocolatey installed :#{ChocolateyVersions.chocolatey_installed?}")
   Chef::Log.info("chocolatey version :#{ChocolateyVersions.get_choco_version()}")
+ 
+  #replace this with execute command out to powershell , to remove the need to have powershell and therefor windows as a dependancy
   powershell_script 'install chocolatey' do
     code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
     convert_boolean_return true
@@ -49,6 +51,7 @@ else
   #old code 
 
   Chef::Log.info("chocolatey installed :#{ChocolateyHelpers.chocolatey_installed?}")
+  #replace this with execute command out to powershell , to remove the need to have powershell and therefor windows as a dependancy
   powershell_script 'install chocolatey' do
     code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
     convert_boolean_return true
