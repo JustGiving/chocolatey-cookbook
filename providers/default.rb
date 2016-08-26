@@ -203,7 +203,7 @@ def jg_upgrade(name)
 end
 
 def jg_install(name)
-  execute "install package #{name} version #{version}" do
+  execute "install package #{name}" do
       command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -y #{jg_cmd_args}"
   end
 end
