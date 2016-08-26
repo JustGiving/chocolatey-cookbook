@@ -24,26 +24,46 @@ include_recipe 'windows'
 #::Chef::Recipe.send(:include, Chef::Mixin::PowershellOut)
 ::Chef::Resource::RubyBlock.send(:include, Chef::Mixin::PowershellOut)
 
-ChocolateyVersions.debug(node['chocolatey']['debug'])
 
-Chef::Log.info("chocolatey installed :#{ChocolateyHelpers.chocolatey_installed?}")
-Chef::Log.info("chocolatey installed :#{ChocolateyVersions.chocolatey_installed?}")
-Chef::Log.info("chocolatey version :#{ChocolateyVersions.get_choco_version()}")
-
-
-
-powershell_script 'install chocolatey' do
-  code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
-  convert_boolean_return true
-  not_if { ChocolateyVersions.chocolatey_installed? }
-end
-
-ruby_block "reset ENV['ChocolateyInstall']" do
-  block do
-    cmd = powershell_out!("[System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'MACHINE')")
-    ENV['ChocolateyInstall'] = cmd.stdout.chomp
-    Chef::Log.info("ChocolateyInstall is '#{ENV['ChocolateyInstall']}'")
+if (node['chocolatey']['jg_code_on'] == true)
+  # new code feature switch 
+  ChocolateyVersions.debug(node['chocolatey']['debug'])
+  ChocolateyPackages.debug(node['chocolatey']['debug'])
+  Chef::Log.info("chocolatey installed :#{ChocolateyVersions.chocolatey_installed?}")
+  Chef::Log.info("chocolatey version :#{ChocolateyVersions.get_choco_version()}")
+  powershell_script 'install chocolatey' do
+    code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
+    convert_boolean_return true
+    not_if { ChocolateyVersions.chocolatey_installed? }
   end
+
+  ruby_block "reset ENV['ChocolateyInstall']" do
+    block do
+      cmd = powershell_out!("[System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'MACHINE')")
+      ENV['ChocolateyInstall'] = cmd.stdout.chomp
+      Chef::Log.info("ChocolateyInstall is '#{ENV['ChocolateyInstall']}'")
+    end
+  end
+
+else
+  #old code 
+
+  Chef::Log.info("chocolatey installed :#{ChocolateyHelpers.chocolatey_installed?}")
+  powershell_script 'install chocolatey' do
+    code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
+    convert_boolean_return true
+    not_if { ChocolateyHelpers.chocolatey_installed? }
+  end
+
+  ruby_block "reset ENV['ChocolateyInstall']" do
+    block do
+      cmd = powershell_out!("[System.Environment]::GetEnvironmentVariable('ChocolateyInstall', 'MACHINE')")
+      ENV['ChocolateyInstall'] = cmd.stdout.chomp
+      Chef::Log.info("ChocolateyInstall is '#{ENV['ChocolateyInstall']}'")
+    end
+  end
+
+
 end
 
 # Issue #1: Cygwin "setup.log" size

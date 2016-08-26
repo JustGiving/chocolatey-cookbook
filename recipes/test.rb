@@ -1,11 +1,19 @@
 
 include_recipe "chocolatey::default"
 
-Chef::Log.info ("WOOOOO")
+
 chocolatey "notepadplusplus" do 
 	action :install
+	version '6.9.2'
 end
-Chef::Log.info ("WOOOOO1")
+
+#prove downgrade
+
+chocolatey "notepadplusplus" do 
+	action :install
+	version '6.8.3'
+end
+
 #need to get chef client version or do we ?
 #need to get chcoclatey version 
 #if old version then 

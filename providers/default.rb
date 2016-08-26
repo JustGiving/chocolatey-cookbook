@@ -33,12 +33,21 @@ def load_current_resource
   @current_resource.args(@new_resource.args)
   @current_resource.options(@new_resource.options)
   @current_resource.package(@new_resource.package)
+  if(jg_new_code_on? == true)   
+    @chocolatey_installed = ChocolateyVersions.chocolatey_installed?
+    @chocolatey_version = ChocolateyVersions.get_choco_version()
+    ChocolateyVersions.debug(node['chocolatey']['debug'])
+    ChocolateyPackages.debug(node['chocolatey']['debug'])
+  end
   @current_resource.exists = true if package_exists?(@current_resource.package, @current_resource.version)
+  
   #@current_resource.upgradeable = true if upgradeable?(@current_resource.package)
   #  @current_resource.installed = true if package_installed?(@current_resource.package)
 end
 
 action :install do
+  Chef::Log.info("chocolatey installed :#{ChocolateyVersions.chocolatey_installed?}")
+  Chef::Log.info("chocolatey version :#{ChocolateyVersions.get_choco_version()}")
   if @current_resource.exists
     Chef::Log.info "#{ @current_resource.package } already installed - nothing to do."
   elsif @current_resource.version
@@ -111,13 +120,16 @@ def package_installed?(name)
 end
 
 def package_exists?(name, version)
+  if (jg_code_on_and_new_version?)      
+      return jg_package_exists?(name, version) 
+  end
+  #old code 
   if package_with_name_in_lib_folder?(name,version) 
     return true 
   end
   Chef::Log.debug "not found in lib folder, moving on"
   return false unless package_installed?(name)
   return true unless version
-
   cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} version #{name} -localonly #{cmd_args}")
   cmd.run_command
   software = cmd.stdout.split("\r\n").each_with_object({}) do |s, h|
@@ -125,8 +137,8 @@ def package_exists?(name, version)
     h[String(v).strip] = String(k).strip
     h
   end
-
   software[name] == version
+  
 end
 
 def upgradeable?(name)
@@ -154,8 +166,56 @@ def upgrade(name)
 end
 
 def install_version(name, version)
-  execute "install package #{name} version #{version}" do
-    command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -version #{version} #{cmd_args}"
+  if (jg_code_on_and_new_version?)      
+     jg_install_version(name,version) 
+  else
+    execute "install package #{name} version #{version}" do
+      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -version #{version} #{cmd_args}"
+    end
   end
 end
 
+###
+
+def jg_install_version(name, version)
+  execute "install package #{name} version #{version}" do
+      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -y -f --version #{version} #{cmd_args}"
+  end
+end
+
+def jg_new_code_on?
+  return node['chocolatey']['jg_code_on'] == true
+end  
+
+def log(msg)
+  Chef::Log.info("CHOCO: #{msg}")
+end
+
+def jg_package_exists?(name, version)
+  return jg_package_installed?(name,version)
+end
+
+def jg_package_installed?(name,version)
+  log("jg_package_installed? [#{name}] [#{version}]")
+  cmd = Mixlib::ShellOut.new("#{::ChocolateyVersions.chocolatey_executable} list --local-only")
+  cmd.run_command  
+  data = cmd.stdout
+  success = (cmd.exitstatus == 0)
+  if(success)
+    result = ::ChocolateyPackages.is_package_listed?(name,version,data)
+    log("is package listed [#{result}]")
+    return result
+  else
+    raise "Failed to execute choco list --localonly"
+  end
+end
+
+def jg_code_on_and_new_version?
+  if (jg_new_code_on?)   
+    if(@chocolatey_version != '0.9.8.31')    # maybe swap with array.include?  
+      log("JG code is on and we are on a newer version")
+      return true 
+    end
+  end
+  return false
+end

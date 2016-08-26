@@ -36,7 +36,7 @@ module ChocolateyVersions
 	end
 
 	def self.parse_version_data(data)
-	   log(data)
+	   #log(data)
 	   rtn = ''
 	   if(data.include?('found'))
 	     rtn = parse_old_format(data)
@@ -113,6 +113,7 @@ module ChocolateyVersions
 		if(@@debug)
 			Chef::Log.info("CHOCO: #{msg}")
 		end
-	end
+	end	
+
 end
 
