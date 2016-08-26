@@ -24,10 +24,18 @@ include_recipe 'windows'
 #::Chef::Recipe.send(:include, Chef::Mixin::PowershellOut)
 ::Chef::Resource::RubyBlock.send(:include, Chef::Mixin::PowershellOut)
 
+ChocolateyVersions.debug(node['chocolatey']['debug'])
+
+Chef::Log.info("chocolatey installed :#{ChocolateyHelpers.chocolatey_installed?}")
+Chef::Log.info("chocolatey installed :#{ChocolateyVersions.chocolatey_installed?}")
+Chef::Log.info("chocolatey version :#{ChocolateyVersions.get_choco_version()}")
+
+
+
 powershell_script 'install chocolatey' do
   code "iex ((new-object net.webclient).DownloadString('#{node['chocolatey']['Uri']}'))"
   convert_boolean_return true
-  not_if { ChocolateyHelpers.chocolatey_installed? }
+  not_if { ChocolateyVersions.chocolatey_installed? }
 end
 
 ruby_block "reset ENV['ChocolateyInstall']" do

@@ -25,4 +25,6 @@ module ChocolateyHelpers
     cmd.run_command
     @is_chocolatey_installed = (cmd.exitstatus == 0)
   end
+
 end
+
