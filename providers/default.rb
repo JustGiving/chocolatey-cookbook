@@ -40,9 +40,8 @@ def load_current_resource
     ChocolateyPackages.debug(node['chocolatey']['debug'])
   end
   @current_resource.exists = true if package_exists?(@current_resource.package, @current_resource.version)
-  
   #@current_resource.upgradeable = true if upgradeable?(@current_resource.package)
-  #  @current_resource.installed = true if package_installed?(@current_resource.package)
+  #@current_resource.installed = true if package_installed?(@current_resource.package)
 end
 
 action :install do
@@ -70,8 +69,12 @@ end
 action :remove do
   if @current_resource.exists
     converge_by("uninstall package #{ @current_resource.package }") do
-      execute "uninstall package #{@current_resource.package}" do
-        command "#{::ChocolateyHelpers.chocolatey_executable} uninstall  #{@new_resource.package} #{cmd_args}"
+      if (jg_code_on_and_new_version?)      
+        jg_uninstall(@current_resource.package) 
+      else
+        execute "uninstall package #{@current_resource.package}" do
+          command "#{::ChocolateyHelpers.chocolatey_executable} uninstall  #{@new_resource.package} #{cmd_args}"
+        end
       end
     end
   else
@@ -142,6 +145,7 @@ def package_exists?(name, version)
 end
 
 def upgradeable?(name)
+  #TO DO JG BIT
   return false unless @current_resource.exists
   unless package_installed?(name)
     Chef::Log.debug("Package isn't installed... we can upgrade it!")
@@ -154,15 +158,23 @@ def upgradeable?(name)
 end
 
 def install(name)
-  execute "install package #{name}" do
-    command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} #{cmd_args}"
+  if (jg_code_on_and_new_version?)      
+     jg_install(name) 
+  else
+    execute "install package #{name}" do
+      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} #{cmd_args}"
+    end
   end
 end
 
 def upgrade(name)
+   if (jg_code_on_and_new_version?)      
+     jg_install(name) 
+  else
   execute "updating #{name} to latest" do
     command "#{::ChocolateyHelpers.chocolatey_executable} update #{name} #{cmd_args}"
-  end  
+  end 
+  end 
 end
 
 def install_version(name, version)
@@ -177,9 +189,28 @@ end
 
 ###
 
+def jg_uninstall(name)
+  execute "uninstall package #{@current_resource.package}" do
+    command "#{::ChocolateyHelpers.chocolatey_executable} uninstall  #{name} #{jg_cmd_args}"
+  end  
+end
+
+
+def jg_upgrade(name)
+  execute "updating #{name} to latest" do
+    command "#{::ChocolateyHelpers.chocolatey_executable} update #{name} -y #{jg_cmd_args}"
+  end  
+end
+
+def jg_install(name)
+  execute "install package #{name} version #{version}" do
+      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -y #{jg_cmd_args}"
+  end
+end
+
 def jg_install_version(name, version)
   execute "install package #{name} version #{version}" do
-      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -y -f --version #{version} #{cmd_args}"
+      command "#{::ChocolateyHelpers.chocolatey_executable} install #{name} -y -f --version #{version} #{jg_cmd_args}"
   end
 end
 
@@ -218,4 +249,15 @@ def jg_code_on_and_new_version?
     end
   end
   return false
+end
+
+def jg_cmd_args
+  output = ''
+  output += " --source #{@current_resource.source}" if @current_resource.source
+  output += " --ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
+  @current_resource.options.each do |k, v|
+    output += " -#{k}"
+    output += " #{v}" if v
+  end
+  output
 end

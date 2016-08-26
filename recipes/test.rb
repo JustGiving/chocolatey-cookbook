@@ -2,6 +2,10 @@
 include_recipe "chocolatey::default"
 
 
+chocolatey "sublimetext2" do 
+	action :install
+end
+
 chocolatey "notepadplusplus" do 
 	action :install
 	version '6.9.2'
@@ -13,6 +17,8 @@ chocolatey "notepadplusplus" do
 	action :install
 	version '6.8.3'
 end
+
+
 
 #need to get chef client version or do we ?
 #need to get chcoclatey version 
