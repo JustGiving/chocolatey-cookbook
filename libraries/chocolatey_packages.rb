@@ -17,7 +17,7 @@ module ChocolateyPackages
 		log("is package listed with name:[#{name}] version[#{version}]")
 		items = data.gsub("\r",'').split("\n")
 		items.each do |item|			
-			log(">> #{item} <<")
+			Chef::Log.debug(">> #{item} <<")
 			if((item.include?(name)) && (item.include?('[Pending]') == false))
 				#ok we have found a match , now check the version 
 				if(version.to_s != '')
