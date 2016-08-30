@@ -147,14 +147,27 @@ end
 def upgradeable?(name)
   #TO DO JG BIT
   return false unless @current_resource.exists
-  unless package_installed?(name)
-    Chef::Log.debug("Package isn't installed... we can upgrade it!")
-    return true
-  end
-  Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
-  cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} version #{name} #{cmd_args}")
-  cmd.run_command
-  !cmd.stdout.include?('Latest version installed')
+   if (jg_code_on_and_new_version?)      
+     #WORK ON THIS
+     unless jg_package_installed?(name,'')
+      Chef::Log.debug("Package #{name} isn't installed... we can upgrade it!")
+      return true
+     end
+      Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
+      cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} -version #{name} #{cmd_args}")
+      cmd.run_command
+      !cmd.stdout.include?('Latest version installed')
+      ##
+  else
+    unless package_installed?(name)
+      Chef::Log.debug("Package isn't installed... we can upgrade it!")
+      return true
+    end
+    Chef::Log.debug("Checking to see if this chocolatey package is installed/upgradable: '#{name}'")
+    cmd = Mixlib::ShellOut.new("#{::ChocolateyHelpers.chocolatey_executable} version #{name} #{cmd_args}")
+    cmd.run_command
+    !cmd.stdout.include?('Latest version installed')
+    end
 end
 
 def install(name)
@@ -243,7 +256,7 @@ end
 
 def jg_code_on_and_new_version?
   if (jg_new_code_on?)   
-    if(@chocolatey_version != '0.9.8.31')    # maybe swap with array.include?  
+    if(@chocolatey_version != '0.9.8.31')    # maybe swap with array.include?        
       log("JG code is on and we are on a newer version")
       return true 
     end

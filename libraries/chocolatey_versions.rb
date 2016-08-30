@@ -35,11 +35,37 @@ module ChocolateyVersions
 	  return bits[1]
 	end
 
+	def self.parse_stupid_format(data)
+		log("parsing stupid newish format")
+		rtn = '' 
+	  	lines = data.split("\n")
+	  	lines.each do |line|  	
+	       log("==")
+	       log(line)
+	       if((line.include?('you have chocolatey v')) && (line.include?('installed.')))
+		  	l = line.gsub('you have chocolatey v','')
+		  	log("===")
+		  	log(l)
+		  	bits = l.split('installed.')
+		  		log("====")
+		  		log(bits)
+		  		rtn = bits[0].gsub(' ','')
+			end 
+	  	end
+	  return rtn
+	end
+
 	def self.parse_version_data(data)
-	   #log(data)
+	   log("@@@")
+	   log(data)
+	   log("@@")
+	   log(data.include?('you have chocolatey'))
 	   rtn = ''
 	   if(data.include?('found'))
 	     rtn = parse_old_format(data)
+	   elsif (data.include?('you have chocolatey'))
+	   	  log("++++++++++++++++++++++")
+ 		  rtn = parse_stupid_format(data)
 	   else
 	     rtn = parse_new_format(data)
 	   end
@@ -89,6 +115,7 @@ module ChocolateyVersions
 		   		end
 		   	else
 		   		version_data = `#{exe} version`
+		 		log("version data #{version_data}")
 		 		version = parse_version_data(version_data.downcase).gsub('v','')
 				log("Detected version is [#{version}]")
 				save_cached_version(md5sum,version)
