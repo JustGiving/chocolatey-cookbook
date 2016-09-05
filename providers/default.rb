@@ -270,7 +270,7 @@ def jg_cmd_args
   output += " --source #{@current_resource.source}" if @current_resource.source
   output += " --ia '#{@current_resource.args}'" unless @current_resource.args.to_s.empty?
   @current_resource.options.each do |k, v|
-    output += " -#{k}"
+    output += " --#{k}"
     output += " #{v}" if v
   end
   output
